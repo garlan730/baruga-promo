@@ -4,6 +4,7 @@ import { defineConfig } from 'vite'
 // https://vite.dev/config/
 export default defineConfig(({ command }) => ({
   plugins: [react()],
-  // GitHub Pages serves the site from /baruga-promo/; dev keeps /.
-  base: command === 'build' ? '/baruga-promo/' : '/',
+  // Relative paths so the build works both at promo.barugamedicalcenter.com/ and
+  // garlan730.github.io/baruga-promo/ (which redirects to the custom domain).
+  base: command === 'build' ? './' : '/',
 }))

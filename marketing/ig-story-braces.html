@@ -6,7 +6,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
   /*
-   * 15s animated IG story, 1080×1920. Everything is driven by renderAt(t) so the
+   * 12s animated IG story, 1080×1920. Everything is driven by renderAt(t) so the
    * exporter (render_story.py) can capture exact frames; opening the file in a
    * browser plays it live. Safe zone: keep text between y≈250 and y≈1580.
    */
@@ -31,18 +31,9 @@
 
   #teeth { position: absolute; left: 40px; top: 760px; width: 1000px; height: 622px; }
 
-  /* Frame matches the photos' 9:4 shape so nothing gets cropped or upscaled. */
-  .compare { position: absolute; left: 60px; right: 60px; top: 780px; height: 449px; border-radius: 40px; background: #fff; padding: 20px; box-shadow: 0 30px 60px rgba(0,0,0,.25); }
-  .compare .frame { position: relative; width: 100%; height: 100%; border-radius: 26px; overflow: hidden; }
-  .compare img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .compare .handle { position: absolute; top: 0; bottom: 0; width: 8px; margin-left: -4px; background: #fff; box-shadow: 0 0 20px rgba(0,0,0,.35); }
-  .compare .knob { position: absolute; top: 50%; left: 50%; width: 76px; height: 76px; margin: -38px 0 0 -38px; border-radius: 50%; background: var(--green); border: 6px solid #fff; display: grid; place-items: center; font-size: 30px; font-weight: 800; }
-  .chip { position: absolute; top: 20px; padding: 8px 20px; border-radius: 999px; font-size: 26px; font-weight: 800; letter-spacing: .08em; }
-  .chip.before { left: 20px; background: rgba(29,36,20,.78); }
-  .chip.after { right: 20px; background: var(--green); }
 
   .stamp { position: absolute; left: 50%; top: 660px; width: 580px; height: 580px; margin-left: -290px; border-radius: 50%; background: #fff; color: var(--green); display: grid; place-items: center; text-align: center; box-shadow: 0 30px 70px rgba(0,0,0,.3); }
-  .stamp b { display: block; font-size: 180px; line-height: .9; font-weight: 800; letter-spacing: -.04em; }
+  .stamp b { display: block; margin: 8px 0; font-size: 116px; line-height: .95; font-weight: 800; letter-spacing: -.03em; }
   .stamp span { font-size: 44px; font-weight: 800; letter-spacing: .14em; }
   .stamp::after { content: ''; position: absolute; inset: 22px; border-radius: 50%; border: 6px dashed rgba(76,116,4,.35); }
 
@@ -67,25 +58,10 @@
     <div class="caption" id="cap2" style="top:1450px">Gigi digeser <span class="pill">perlahan & aman</span><br>oleh dokter gigi spesialis</div>
   </div>
 
-  <!-- Scene 3: real result -->
-  <div class="layer" id="s3">
-    <div class="title" style="top:430px;font-size:92px">Hasil nyata<br>pasien kami</div>
-    <div class="compare" id="compare">
-      <div class="frame">
-        <img src="../public/before-after/case-3-before.jpg" alt="">
-        <img id="afterImg" src="../public/before-after/case-3-after.jpg" alt="">
-        <span class="chip before" id="beforeChip">SEBELUM</span>
-        <span class="chip after" id="afterChip">SESUDAH</span>
-        <div class="handle" id="handle"><div class="knob">↔</div></div>
-      </div>
-    </div>
-    <div class="caption" style="top:1320px">Perawatan Ortodonti di<br>Baruga Medical Center</div>
-  </div>
-
   <!-- Scene 4: offer -->
   <div class="layer" id="s4">
     <div class="title" style="top:430px;font-size:92px">Promo terbatas!</div>
-    <div class="stamp" id="stamp"><div><span>DISKON</span><b>20%</b><span>BEHEL</span></div></div>
+    <div class="stamp" id="stamp"><div><span>PROMO</span><b>SPESIAL</b><span>BEHEL</span></div></div>
     <div class="caption" id="gratis" style="top:1320px;font-size:56px;font-weight:800">+ Konsultasi <span class="pill">GRATIS</span></div>
     <div class="caption" id="dates" style="top:1430px;font-size:36px">Berlaku 23 Okt – 22 Nov 2026</div>
   </div>
@@ -100,7 +76,7 @@
   </div>
 
 <script>
-const DURATION = 15
+const DURATION = 12
 const $ = (id) => document.getElementById(id)
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x))
 const seg = (t, a, b) => clamp((t - a) / (b - a))
@@ -229,26 +205,16 @@ function renderAt(t) {
   fade($('cap2'), t, 3.2, 6.9)
   renderTeeth(t)
 
-  scene($('s3'), t, 6.8, 10.2)
-  const wipe = easeInOut(seg(t, 7.6, 9.3))
-  // "Sesudah" grows in from the right; labels follow whichever photo is under them.
-  const pos = lerp(96, 4, wipe)
-  $('afterImg').style.clipPath = `inset(0 0 0 ${pos}%)`
-  $('handle').style.left = pos + '%'
-  $('afterChip').style.opacity = seg(t, 7.7, 8.0)
-  $('beforeChip').style.opacity = 1 - seg(t, 8.9, 9.2)
-  $('compare').style.transform = `scale(${0.92 + 0.08 * easeBack(seg(t, 6.8, 7.4))})`
+  scene($('s4'), t, 6.8, 9.4)
+  pop($('stamp'), t, 7.0, 0.5)
+  $('stamp').style.transform += ` rotate(${lerp(-25, -6, easeBack(seg(t, 7.0, 7.5)))}deg)`
+  fade($('gratis'), t, 7.6, 9.8)
+  fade($('dates'), t, 8.0, 9.8)
 
-  scene($('s4'), t, 10.2, 12.6)
-  pop($('stamp'), t, 10.4, 0.5)
-  $('stamp').style.transform += ` rotate(${lerp(-25, -6, easeBack(seg(t, 10.4, 10.9)))}deg)`
-  fade($('gratis'), t, 11.0, 13)
-  fade($('dates'), t, 11.4, 13)
-
-  scene($('s5'), t, 12.6, DURATION + 1)
-  const pulse = 1 + 0.04 * Math.sin((t - 12.6) * 7)
-  $('ctaBtn').style.transform = `scale(${t > 13 ? pulse : 1})`
-  $('arrow').style.transform = `translateY(${Math.abs(Math.sin((t - 12.6) * 5)) * 30}px)`
+  scene($('s5'), t, 9.4, DURATION + 1)
+  const pulse = 1 + 0.04 * Math.sin((t - 9.4) * 7)
+  $('ctaBtn').style.transform = `scale(${t > 9.8 ? pulse : 1})`
+  $('arrow').style.transform = `translateY(${Math.abs(Math.sin((t - 9.4) * 5)) * 30}px)`
 }
 window.renderAt = renderAt
 window.DURATION = DURATION

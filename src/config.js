@@ -1,6 +1,6 @@
 // Edit campaign details here.
 
-// Files in /public, resolved against the deploy base (e.g. /baruga-promo/ on GitHub Pages).
+// Files in /public, resolved against the deploy base (relative in production builds).
 export const asset = (path) => `${import.meta.env.BASE_URL}${path}`
 
 export const CLINIC = {
