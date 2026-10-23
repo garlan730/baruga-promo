@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>IG Story – Promo Behel 20%</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* 1080×1920 Instagram story. Key content stays between y≈250 and y≈1650 (IG UI safe zone). */
+  :root { --green: #4c7404; --green-dark: #2f4a00; --green-light: #eef4e3; --ink: #1d2414; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; }
+  body {
+    position: relative;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: #fff;
+    background:
+      radial-gradient(circle at 105% 8%, rgba(255,255,255,.16) 0 260px, transparent 261px),
+      radial-gradient(circle at -12% 62%, rgba(255,255,255,.08) 0 300px, transparent 301px),
+      linear-gradient(165deg, #6a9a12 0%, var(--green) 45%, var(--green-dark) 100%);
+  }
+  .brand { position: absolute; top: 120px; left: 72px; display: flex; align-items: center; gap: 20px; }
+  .brand img { width: 84px; height: 84px; border-radius: 50%; background: #fff; border: 4px solid rgba(255,255,255,.9); }
+  .brand b { display: block; font-size: 34px; font-weight: 800; }
+  .brand span { font-size: 24px; opacity: .85; font-weight: 600; }
+
+  .content { position: absolute; top: 262px; left: 72px; right: 72px; }
+  .badge {
+    display: inline-block; padding: 12px 26px; border-radius: 999px;
+    background: #fff; color: var(--green); font-size: 26px; font-weight: 800; letter-spacing: .08em;
+  }
+  h1 { margin-top: 28px; font-size: 106px; line-height: 1.02; font-weight: 800; letter-spacing: -.02em; }
+  h1 .pct {
+    display: inline-block; padding: 0 22px; border-radius: 26px;
+    background: #fff; color: var(--green); transform: rotate(-3deg);
+  }
+  .sub { margin-top: 30px; font-size: 36px; line-height: 1.35; font-weight: 600; }
+  .sub strong { color: #fff; background: rgba(255,255,255,.18); padding: 0 10px; border-radius: 10px; }
+
+  .card {
+    margin-top: 44px; padding: 22px; border-radius: 40px; background: #fff;
+    box-shadow: 0 30px 60px rgba(0,0,0,.25);
+  }
+  .photo { position: relative; height: 255px; border-radius: 26px; overflow: hidden; }
+  .photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .chip {
+    position: absolute; top: 18px; left: 18px; padding: 8px 20px; border-radius: 999px;
+    font-size: 24px; font-weight: 800; letter-spacing: .08em; color: #fff; background: rgba(29,36,20,.75);
+  }
+  .chip.after { background: var(--green); }
+  .arrow {
+    position: relative; z-index: 1; width: 64px; height: 64px; margin: -20px auto;
+    border-radius: 50%; background: var(--green); border: 6px solid #fff;
+    display: grid; place-items: center; font-size: 30px; font-weight: 800; color: #fff;
+  }
+  .card-foot { display: flex; justify-content: space-between; padding: 18px 8px 4px; color: var(--green-dark); font-size: 24px; font-weight: 700; }
+  .card-foot span:last-child { opacity: .7; }
+
+
+  .cta { margin-top: 44px; text-align: center; }
+  /* Leave y≈1640–1760 empty: that's where the IG link sticker goes. */
+  .cta p { font-size: 40px; font-weight: 800; }
+  .cta small { display: block; margin-top: 8px; font-size: 26px; font-weight: 600; opacity: .85; }
+  .pointer { margin-top: 12px; font-size: 52px; line-height: 1; }
+</style>
+</head>
+<body>
+  <div class="brand">
+    <img src="../public/logo.png" alt="">
+    <div><b>Baruga Medical Center</b><span>Klinik Utama · Makassar</span></div>
+  </div>
+
+  <div class="content">
+    <span class="badge">PROMO BEHEL · 23 OKT – 22 NOV</span>
+    <h1>Senyum Rapi,<br>Hemat <span class="pct">20%</span></h1>
+    <p class="sub">Diskon 20% perawatan behel + <strong>konsultasi GRATIS</strong> bersama dokter gigi spesialis ortodonti.</p>
+
+    <div class="card">
+      <div class="photo"><img src="../public/before-after/case-3-before.jpg" alt=""><span class="chip">SEBELUM</span></div>
+      <div class="arrow">↓</div>
+      <div class="photo"><img src="../public/before-after/case-3-after.jpg" alt=""><span class="chip after">SESUDAH</span></div>
+      <div class="card-foot"><span>Hasil pasien kami</span><span>Perawatan Ortodonti</span></div>
+    </div>
+
+    <div class="cta">
+      <p>Booking konsultasi gratis sekarang!</p>
+      <small>Senin–Sabtu · 17.00–22.00 WITA · Kuota terbatas</small>
+      <div class="pointer">👇</div>
+    </div>
+  </div>
+</body>
+</html>
