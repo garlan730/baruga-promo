@@ -14,8 +14,8 @@ export const CLINIC = {
 }
 
 export const PROMO = {
-  discount: '20%',
-  title: 'Diskon 20% Perawatan Ortodonti (Behel)',
+  discount: '10%',
+  title: 'Diskon 10% Perawatan Ortodonti (Behel)',
   subtitle: 'Plus konsultasi awal GRATIS untuk perawatan ortodonti & prostodonti bersama dokter gigi spesialis.',
   terms: 'Berlaku 23 Okt – 22 Nov 2026. Syarat & ketentuan berlaku. Kuota terbatas.',
 }
@@ -35,7 +35,7 @@ export const TREATMENTS = [
   {
     id: 'Ortodonti',
     short: 'Behel',
-    offers: ['Diskon 20%', 'Konsultasi gratis'],
+    offers: ['Diskon 10%', 'Konsultasi gratis'],
     icon: '😁',
     title: 'Ortodonti (Behel)',
     text: 'Merapikan gigi berjejal, renggang, atau maju agar senyum rapi dan fungsi kunyah lebih baik.',

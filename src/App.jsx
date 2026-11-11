@@ -23,7 +23,7 @@ function DoctorPhoto({ doctor }) {
 
 const INCLUDED = [
   'Konsultasi awal GRATIS',
-  'Diskon 20% perawatan ortodonti (behel)',
+  'Diskon 10% perawatan ortodonti (behel)',
   'Pemeriksaan & rencana perawatan',
   'Ditangani langsung dokter gigi spesialis',
 ]
