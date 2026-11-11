@@ -1,6 +1,6 @@
 # Baruga Medical Center – Promo landing page
 
-Mobile-first landing page for the Instagram campaign (Promo Behel 10% + konsultasi gratis, 23 Okt – 22 Nov 2026).
+Mobile-first landing page for the Instagram campaign (Promo Behel 10% + konsultasi gratis, 23 Okt – 31 Des 2026).
 Live: https://promo.barugamedicalcenter.com/ (also garlan730.github.io/baruga-promo/)
 
 - **Content** (promo, treatments, doctors, dates, WhatsApp number): `src/config.js`

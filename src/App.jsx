@@ -1,24 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { BOOKING_API_URL, CLINIC, DOCTORS, PROMO, TREATMENTS, asset } from './config'
-import { campaignRange, dayLabel, formatLongDate, slotKey, slotsFor, toKey, upcomingDays } from './schedule'
+import { campaignRange, dayLabel, daysLeft, formatLongDate, slotKey, slotsFor, toKey, upcomingDays } from './schedule'
 import './App.css'
-
-function Logo({ size = 40 }) {
-  const [failed, setFailed] = useState(false)
-  if (failed) {
-    return <span className="logo-fallback" style={{ width: size, height: size }}>B</span>
-  }
-  return (
-    <img src={asset('logo.png')} alt={CLINIC.shortName} width={size} height={size}
-      className="logo" onError={() => setFailed(true)} />
-  )
-}
 
 function DoctorPhoto({ doctor }) {
   const [failed, setFailed] = useState(false)
   const initials = doctor.name.replace(/^drg?\.\s*/i, '').split(' ').slice(0, 2).map((w) => w[0]).join('')
   if (failed) return <div className="doctor-photo doctor-initials">{initials}</div>
-  return <img className="doctor-photo" src={doctor.photo} alt={doctor.name} onError={() => setFailed(true)} />
+  return <img className="doctor-photo" src={doctor.photo} alt={doctor.name} loading="lazy" onError={() => setFailed(true)} />
 }
 
 const INCLUDED = [
@@ -204,14 +193,14 @@ function BookingForm() {
     return (
       <div className="booking-card">
         <p className="hint">Periode promo telah berakhir atau jadwal sudah penuh. Hubungi kami via WhatsApp untuk info jadwal berikutnya.</p>
-        <a className="btn btn-primary btn-block" href={`https://wa.me/${CLINIC.whatsapp}`}><WhatsAppIcon /> Chat WhatsApp</a>
+        <a className="btn btn-primary btn-block" href={`https://wa.me/${CLINIC.whatsapp}`}><WhatsAppIcon /> Chat via WhatsApp</a>
       </div>
     )
   }
 
   return (
     <form className="booking-card" onSubmit={submit} noValidate>
-      <p className="field-label">1. Pilih tanggal</p>
+      <p className="field-label"><span>01</span> Pilih tanggal</p>
       <div className="date-strip" role="radiogroup" aria-label="Tanggal">
         {days.map((d) => {
           const l = dayLabel(d)
@@ -227,7 +216,7 @@ function BookingForm() {
         })}
       </div>
 
-      <p className="field-label">2. Pilih jam <span className="muted">(WITA)</span></p>
+      <p className="field-label"><span>02</span> Pilih jam <em>WITA</em></p>
       {loading ? (
         <p className="hint">Memuat jadwal yang tersedia…</p>
       ) : (
@@ -244,13 +233,13 @@ function BookingForm() {
         </div>
       )}
 
-      <label className="field-label" htmlFor="name">3. Data diri</label>
+      <label className="field-label" htmlFor="name"><span>03</span> Data diri</label>
       <input id="name" className="input" placeholder="Nama lengkap" autoComplete="name"
         value={name} onChange={(e) => setName(e.target.value)} />
       <input className="input" placeholder="No. WhatsApp (cth. 0812xxxx)" inputMode="tel" autoComplete="tel"
         aria-label="Nomor WhatsApp" value={phone} onChange={(e) => setPhone(e.target.value)} />
 
-      <p className="field-label">4. Perawatan &amp; keluhan</p>
+      <p className="field-label"><span>04</span> Perawatan &amp; keluhan</p>
       <div className="treatment-grid" role="radiogroup" aria-label="Perawatan">
         {TREATMENTS.map((t) => (
           <button type="button" key={t.id} role="radio" aria-checked={treatment === t.id}
@@ -276,102 +265,195 @@ function BookingForm() {
   )
 }
 
+function useScrolled(offset = 12) {
+  const [scrolled, setScrolled] = useState(false)
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > offset)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [offset])
+  return scrolled
+}
+
+function SectionHead({ label, children, sub, center }) {
+  return (
+    <div className={`section-head ${center ? 'center' : ''}`}>
+      <span className="section-label">{label}</span>
+      <h2 className="headline">{children}</h2>
+      {sub && <p className="body-text">{sub}</p>}
+    </div>
+  )
+}
+
 export default function App() {
   const bookingRef = useRef(null)
+  const scrolled = useScrolled()
+  const left = daysLeft()
   const scrollToBooking = () => bookingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  const specialties = [...new Set(DOCTORS.map((doc) => doc.specialty))]
 
   return (
-    <div className="page">
-      <header className="topbar">
-        <Logo size={36} />
-        <div>
-          <div className="brand-name">{CLINIC.shortName}</div>
-          <div className="brand-sub">Klinik Utama · Makassar</div>
+    <>
+      <header className={`header ${scrolled ? 'scrolled' : ''}`}>
+        <div className="container header-inner">
+          <a href={CLINIC.website} className="brand" aria-label={CLINIC.name}>
+            <img src={asset('logo-wordmark.png')} alt={CLINIC.shortName} />
+          </a>
+          <button className="btn btn-primary btn-sm" onClick={scrollToBooking}>Booking Gratis</button>
         </div>
       </header>
 
-      <section className="hero">
-        <span className="badge">PROMO ORTODONTI</span>
-        <h1>
-          Senyum Rapi,<br />Hemat <span className="hero-discount">{PROMO.discount}</span>
-        </h1>
-        <p className="hero-title">{PROMO.title}</p>
-        <p className="hero-sub">{PROMO.subtitle}</p>
-        <button className="btn btn-light" onClick={scrollToBooking}>Booking Konsultasi Gratis</button>
-        <p className="hero-terms">{PROMO.terms}</p>
-      </section>
-
-      <section className="section section-tint">
-        <h2>Yang Anda dapatkan</h2>
-        <ul className="checklist">
-          {INCLUDED.map((item) => <li key={item}>{item}</li>)}
-        </ul>
-      </section>
-
-      <section className="section">
-        <h2>Layanan dokter gigi spesialis</h2>
-        <div className="benefits">
-          {TREATMENTS.map((t) => (
-            <div className="benefit" key={t.id}>
-              <span className="benefit-icon" aria-hidden="true">{t.icon}</span>
-              <div>
-                <div className="offers">{t.offers.map((o) => <span className="offer" key={o}>{o}</span>)}</div>
-                <h3>{t.title}</h3>
-                <p>{t.text}</p>
-                <ul className="tags">
-                  {t.items.map((item) => <li key={item}>{item}</li>)}
-                </ul>
+      <main>
+        <section className="hero">
+          <div className="hero-overlay" aria-hidden="true" />
+          <div className="container hero-grid">
+            <div className="hero-content">
+              <span className="hero-label">Promo Ortodonti · Makassar</span>
+              <h1 className="hero-title">Senyum rapi,<br /><em>hemat {PROMO.discount}.</em></h1>
+              <p className="hero-subtitle">
+                Diskon {PROMO.discount} perawatan behel bersama dokter gigi spesialis ortodonti, plus konsultasi
+                awal gratis untuk ortodonti &amp; prostodonti.
+              </p>
+              <div className="hero-buttons">
+                <button className="btn btn-primary" onClick={scrollToBooking}>Booking Konsultasi Gratis</button>
+                <a className="btn btn-secondary" href="#hasil">Lihat Hasil Perawatan</a>
               </div>
+              {left > 0 && (
+                <p className="hero-notice">
+                  <span className="hero-notice-tag">{left === 1 ? 'Hari terakhir' : `${left} hari lagi`}</span>
+                  Promo berlaku sampai {PROMO.deadline}
+                </p>
+              )}
             </div>
-          ))}
+
+            <aside className="promo-card">
+              <span className="promo-tag">Promo Terbatas</span>
+              <p className="promo-value">Diskon {PROMO.discount}</p>
+              <p className="promo-title">Perawatan Behel (Ortodonti)</p>
+              <ul className="promo-list">
+                {INCLUDED.map((item) => <li key={item}>{item}</li>)}
+              </ul>
+              <button className="btn btn-light promo-cta" onClick={scrollToBooking}>Ambil Promo</button>
+              <p className="promo-terms">{PROMO.terms}</p>
+            </aside>
+          </div>
+        </section>
+
+        <div className="trust-bar">
+          <div className="container trust-items">
+            <span className="trust-item">Dokter gigi spesialis</span>
+            <span className="trust-item">Konsultasi awal gratis</span>
+            <span className="trust-item">Rating Google {CLINIC.rating}</span>
+            <span className="trust-item">Buka sampai 22.00</span>
+          </div>
         </div>
-      </section>
 
-      <section className="section section-tint">
-        <h2>Before – After pasien kami</h2>
-        <BeforeAfter />
-      </section>
+        <section className="section">
+          <div className="container">
+            <SectionHead label="Perawatan" sub="Promo ini berlaku untuk dua layanan spesialis kami. Konsultasi awal gratis untuk keduanya.">
+              Rapikan gigi, atau <em>lengkapi senyum</em> Anda.
+            </SectionHead>
+            <div className="treatments">
+              {TREATMENTS.map((t, i) => (
+                <article className="treatment" key={t.id}>
+                  <span className="treatment-index">{String(i + 1).padStart(2, '0')}</span>
+                  <h3>{t.title}</h3>
+                  <div className="offers">
+                    {t.offers.map((o) => <span className={`offer ${o.startsWith('Diskon') ? 'offer-strong' : ''}`} key={o}>{o}</span>)}
+                  </div>
+                  <p>{t.text}</p>
+                  <ul className="treatment-list">
+                    {t.items.map((item) => <li key={item}>{item}</li>)}
+                  </ul>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
 
-      <section className="section">
-        <h2>Tim dokter gigi spesialis</h2>
-        {[...new Set(DOCTORS.map((doc) => doc.specialty))].map((specialty) => (
-          <div className="doctor-group" key={specialty}>
-            <p className="doctor-group-title">Spesialis {specialty}</p>
-            {DOCTORS.filter((doc) => doc.specialty === specialty).map((doc) => (
-              <div className="doctor-card" key={doc.name}>
-                <DoctorPhoto doctor={doc} />
-                <div>
+        <section className="section alt" id="hasil">
+          <div className="container">
+            <SectionHead label="Hasil Perawatan">Before &amp; after <em>pasien kami.</em></SectionHead>
+            <BeforeAfter />
+          </div>
+        </section>
+
+        <section className="section">
+          <div className="container">
+            <SectionHead label="Tim Dokter" sub="Setiap perawatan ditangani langsung oleh dokter gigi spesialis, dari konsultasi pertama sampai kontrol terakhir.">
+              Ditangani <em>dokter gigi spesialis.</em>
+            </SectionHead>
+            <div className="doctors-grid">
+              {specialties.flatMap((specialty) => DOCTORS.filter((doc) => doc.specialty === specialty)).map((doc) => (
+                <div className="doctor-card" key={doc.name}>
+                  <DoctorPhoto doctor={doc} />
+                  <span className="doctor-group">Spesialis {doc.specialty}</span>
                   <h3>{doc.name}</h3>
-                  <p className="doctor-role">Dokter Gigi Spesialis {doc.specialty}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="section alt booking" ref={bookingRef} id="booking">
+          <div className="container bk-wrap">
+            <div className="bk-intro">
+              <SectionHead label="Buat Janji" sub="Pilih jadwal yang cocok. Slot Anda langsung kami kunci, lalu detailnya terkirim ke WhatsApp klinik.">
+                Booking konsultasi <em>gratis.</em>
+              </SectionHead>
+              <div className="bk-contact">
+                <div>
+                  <h5>Jam praktik</h5>
+                  <p>{CLINIC.hours}</p>
+                </div>
+                <div>
+                  <h5>WhatsApp</h5>
+                  <a href={`https://wa.me/${CLINIC.whatsapp}`}>{CLINIC.phoneDisplay}</a>
+                </div>
+                <div>
+                  <h5>Alamat</h5>
+                  <a href={CLINIC.mapsUrl} target="_blank" rel="noreferrer">{CLINIC.address}</a>
+                </div>
+                <div>
+                  <h5>Instagram</h5>
+                  <a href={`https://instagram.com/${CLINIC.instagram}`} target="_blank" rel="noreferrer">@{CLINIC.instagram}</a>
                 </div>
               </div>
-            ))}
+            </div>
+            <BookingForm />
           </div>
-        ))}
-      </section>
+        </section>
+      </main>
 
-      <section className="section section-tint" ref={bookingRef} id="booking">
-        <h2>Booking Konsultasi Gratis</h2>
-        <p className="section-sub">Senin – Sabtu · 17.00 – 22.00 WITA</p>
-        <BookingForm />
-      </section>
-
-      <section className="section">
-        <h2>Lokasi klinik</h2>
-        <p>{CLINIC.address}</p>
-        <div className="location-actions">
-          <a className="btn btn-outline" href={CLINIC.mapsUrl} target="_blank" rel="noreferrer">📍 Google Maps</a>
-          <a className="btn btn-outline" href={`https://instagram.com/${CLINIC.instagram}`} target="_blank" rel="noreferrer">@{CLINIC.instagram}</a>
+      <footer className="footer">
+        <div className="container footer-grid">
+          <div>
+            <img src={asset('logo-white.png')} alt={CLINIC.shortName} className="footer-logo" />
+            <p className="footer-tagline">Klinik gigi spesialis dan dokter umum di Makassar, melayani dengan sepenuh hati.</p>
+          </div>
+          <div>
+            <h5>Kontak</h5>
+            <a href={`https://wa.me/${CLINIC.whatsapp}`}>WhatsApp {CLINIC.phoneDisplay}</a>
+            <a href={CLINIC.mapsUrl} target="_blank" rel="noreferrer">Google Maps</a>
+            <a href={`https://instagram.com/${CLINIC.instagram}`} target="_blank" rel="noreferrer">Instagram</a>
+          </div>
+          <div>
+            <h5>Klinik</h5>
+            <a href={CLINIC.website}>barugamedicalcenter.com</a>
+            <a href={`${CLINIC.website}/#doctors`}>Semua dokter</a>
+            <a href={`${CLINIC.website}/vaksin-umroh`}>Vaksin Umroh &amp; Haji</a>
+          </div>
         </div>
-      </section>
-
-      <footer className="footer">© {new Date().getFullYear()} {CLINIC.name}</footer>
+        <div className="container footer-bottom">
+          <span>© {new Date().getFullYear()} {CLINIC.name}</span>
+          <span>{PROMO.terms}</span>
+        </div>
+      </footer>
 
       <div className="sticky-cta">
-        <button className="btn btn-primary btn-block" onClick={scrollToBooking}>
-          Booking Konsultasi Gratis
-        </button>
+        <button className="btn btn-primary btn-block" onClick={scrollToBooking}>Booking Konsultasi Gratis</button>
       </div>
-    </div>
+    </>
   )
 }

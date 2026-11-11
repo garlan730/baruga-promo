@@ -6,10 +6,14 @@ export const asset = (path) => `${import.meta.env.BASE_URL}${path}`
 export const CLINIC = {
   name: 'Klinik Utama Baruga Medical Center',
   shortName: 'Baruga Medical Center',
+  website: 'https://barugamedicalcenter.com',
   instagram: 'barugamedicalcenter',
+  phoneDisplay: '0851-2101-9161',
   whatsapp: '6285121019161', // Poli Gigi, international format without "+"
   address: 'Jl. Raya Baruga No.28, Antang, Manggala, Makassar 90234',
   mapsUrl: 'https://maps.app.goo.gl/yTKFD9eF7oSNfg1E9',
+  hours: 'Senin – Sabtu · 17.00 – 22.00 WITA',
+  rating: '5,0', // Google Business Profile, same as the main site
   timeZone: 'Asia/Makassar',
 }
 
@@ -17,13 +21,14 @@ export const PROMO = {
   discount: '10%',
   title: 'Diskon 10% Perawatan Ortodonti (Behel)',
   subtitle: 'Plus konsultasi awal GRATIS untuk perawatan ortodonti & prostodonti bersama dokter gigi spesialis.',
-  terms: 'Berlaku 23 Okt – 22 Nov 2026. Syarat & ketentuan berlaku. Kuota terbatas.',
+  terms: 'Berlaku 23 Okt – 31 Des 2026. Syarat & ketentuan berlaku. Kuota terbatas.',
+  deadline: '31 Desember 2026',
 }
 
 // Campaign window (inclusive, clinic dates). Keep in sync with apps-script/Code.gs.
 export const CAMPAIGN = {
   start: '2026-10-23',
-  end: '2026-11-22',
+  end: '2026-12-31',
 }
 
 // Google Apps Script web app that reserves slots and adds them to Google Calendar.
@@ -36,7 +41,6 @@ export const TREATMENTS = [
     id: 'Ortodonti',
     short: 'Behel',
     offers: ['Diskon 10%', 'Konsultasi gratis'],
-    icon: '😁',
     title: 'Ortodonti (Behel)',
     text: 'Merapikan gigi berjejal, renggang, atau maju agar senyum rapi dan fungsi kunyah lebih baik.',
     items: ['Kawat gigi / behel', 'Rencana perawatan bertahap', 'Kontrol rutin'],
@@ -45,7 +49,6 @@ export const TREATMENTS = [
     id: 'Prostodonti',
     short: 'Gigi Palsu',
     offers: ['Konsultasi gratis'],
-    icon: '🦷',
     title: 'Prostodonti (Gigi Tiruan)',
     text: 'Mengganti gigi yang hilang atau rusak, termasuk implan gigi, agar nyaman makan, berbicara, dan tersenyum.',
     items: ['Gigi palsu lepasan', 'Gigi palsu cekat', 'Crown & bridge', 'Implan gigi'],

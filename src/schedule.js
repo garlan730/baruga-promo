@@ -82,3 +82,10 @@ export function campaignRange() {
   const { date: today } = clinicNow()
   return { from: toKey(new Date(Math.max(today, parseKey(CAMPAIGN.start)))), to: CAMPAIGN.end }
 }
+
+// Days left in the campaign, counting today (0 once it has ended).
+export function daysLeft() {
+  const { date } = clinicNow()
+  const end = parseKey(CAMPAIGN.end)
+  return Math.max(0, Math.round((end - date) / 86400000) + 1)
+}

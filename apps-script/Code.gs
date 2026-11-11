@@ -12,7 +12,7 @@
 const CALENDAR_ID = 'primary' // or a dedicated calendar's ID
 const TZ = 'Asia/Makassar'
 const CAMPAIGN_START = '2026-10-23' // keep in sync with src/config.js
-const CAMPAIGN_END = '2026-11-22'
+const CAMPAIGN_END = '2026-12-31'
 const OPEN_DAYS = [1, 2, 3, 4, 5, 6] // Mon–Sat
 const START_HOUR = 17
 const END_HOUR = 22
