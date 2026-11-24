@@ -26,3 +26,9 @@ Check that it works: open the `/exec` URL in a browser. It should return `{"book
 - After you edit `Code.gs`, go to **Deploy → Manage deployments → Edit → Version: New version → Deploy**. This keeps the same URL.
 - To cancel a booking, delete its event in Google Calendar. The time becomes available again.
 - Only events this script creates block a time. Your personal calendar events do not.
+
+## Ad tracking (added 24 Nov 2026)
+
+- Each Calendar event now has a **Sumber** line, for example `instagram / paid / behel-reel-b`, taken from the ad link's UTM tags. Bookings without tags say `langsung (tanpa kode iklan)`. The WhatsApp message also carries `Kode: behel-reel-b (instagram/paid)`.
+- **Meta Conversions API (optional).** In Events Manager, create a Pixel (Data source → Web) and generate an access token (Settings → Conversions API → Generate access token). In the Apps Script editor, open **Project Settings → Script Properties** and add `META_PIXEL_ID` and `META_CAPI_TOKEN`. Put the same Pixel ID in `.env.production` as `VITE_META_PIXEL_ID` so the page fires the matching browser event. Both send "Schedule" with one shared event ID, so Meta counts each booking once. Only a hashed phone number and browser IDs go to Meta.
+- When you paste the new `Code.gs`, keep your own `CALENDAR_ID` line, then **Deploy → Manage deployments → Edit → New version** so the URL stays the same.

@@ -472,3 +472,13 @@ body { background: var(--ivory); }
 .date-chip.active .date-day, .date-chip.active .date-month { color: rgba(250, 247, 242, 0.8); }
 .input { border-radius: 12px; }
 .footer { background: var(--olive-deep); }
+
+/* Visible labels above the name, phone and note fields */
+.input-label { margin: 2px 0 -6px; font-family: var(--font-ui); font-size: 0.8rem; font-weight: 600; color: var(--charcoal); }
+.input-label em { font-style: normal; font-weight: 500; color: var(--text-light); }
+
+/* Booking confirmation */
+.confirm { align-items: stretch; text-align: center; }
+.confirm-tick { align-self: center; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--olive); color: var(--ivory); font-size: 1.6rem; }
+.confirm-title { margin: 4px 0 0; font-family: var(--font-serif); font-size: 1.6rem; font-weight: 500; color: var(--charcoal); }
+.confirm-when { margin: 0; font-family: var(--font-ui); font-weight: 600; color: var(--olive-dark); }

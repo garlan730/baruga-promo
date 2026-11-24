@@ -3,10 +3,17 @@
  *
  * Deployed as a Google Apps Script web app under the clinic's Google account:
  *   GET  ?from=YYYY-MM-DD&to=YYYY-MM-DD  -> { booked: ["2026-10-24T20.00", ...] }
- *   POST {name, phone, note, date, time} -> { ok: true } | { ok: false, error }
+ *   POST {name, phone, note, date, time, treatment, source, eventId, fbp, fbc, pageUrl, userAgent}
+ *        -> { ok: true } | { ok: false, error }
  *
  * Each booking becomes a Google Calendar event. Only events created by this
  * script (tagged with TAG_KEY) block a slot, so personal events don't.
+ * The event description records where the booking came from (the ad's UTM tags).
+ *
+ * Optional Meta Conversions API: set Script Properties META_PIXEL_ID and META_CAPI_TOKEN
+ * (Project Settings → Script Properties). Each booking is then also sent to Meta as a
+ * "Schedule" event with the same event ID the page's Pixel uses, so it is counted once.
+ * Only a hashed phone number and browser IDs are sent; no treatment or complaint text.
  */
 
 const CALENDAR_ID = 'primary' // or a dedicated calendar's ID
@@ -43,6 +50,12 @@ function doPost(e) {
   const note = String(body.note || '').trim().slice(0, 500)
   const date = String(body.date || '')
   const time = String(body.time || '')
+  const src = body.source && typeof body.source === 'object' ? body.source : {}
+  const clip = (v, n) => String(v || '').trim().slice(0, n || 200)
+  const source = {
+    utm_source: clip(src.utm_source), utm_medium: clip(src.utm_medium), utm_campaign: clip(src.utm_campaign),
+    utm_content: clip(src.utm_content), utm_term: clip(src.utm_term), fbclid: clip(src.fbclid, 300),
+  }
 
   if (!name || !/^[0-9+\s-]{9,16}$/.test(phone)) return json_({ ok: false, error: 'invalid' })
   if (!isValidSlot_(date, time)) return json_({ ok: false, error: 'invalid_slot' })
@@ -61,7 +74,8 @@ function doPost(e) {
 
     const event = cal.createEvent('Konsultasi ' + (treatment || 'Promo') + ' – ' + name, start, end, {
       description: [
-        'Booking dari landing page Promo 20% Ortodonti & Prostodonti',
+        'Booking dari landing page Promo Ortodonti & Prostodonti',
+        'Sumber: ' + sourceLine_(source),
         'Perawatan: ' + (treatment || '-'),
         'Nama: ' + name,
         'WhatsApp: ' + phone,
@@ -71,10 +85,55 @@ function doPost(e) {
       location: 'Klinik Utama Baruga Medical Center',
     })
     event.setTag(TAG_KEY, '1')
-    return json_({ ok: true })
+    if (source.utm_campaign) event.setTag('utmCampaign', source.utm_campaign)
   } finally {
     lock.releaseLock()
   }
+  sendMetaSchedule_({
+    eventId: clip(body.eventId, 100), phone: phone, fbp: clip(body.fbp, 200), fbc: clip(body.fbc, 400),
+    pageUrl: clip(body.pageUrl, 500), userAgent: clip(body.userAgent, 400),
+  })
+  return json_({ ok: true })
+}
+
+// "instagram / paid / behel-reel-b", or "langsung" when the visitor came without ad tags.
+function sourceLine_(s) {
+  const parts = [s.utm_source, s.utm_medium, s.utm_campaign, s.utm_content].filter(String)
+  return parts.length ? parts.join(' / ') + (s.fbclid ? ' (fbclid)' : '') : 'langsung (tanpa kode iklan)'
+}
+
+// Meta Conversions API. Does nothing until both Script Properties are set; never blocks a booking.
+function sendMetaSchedule_(d) {
+  const props = PropertiesService.getScriptProperties()
+  const pixelId = props.getProperty('META_PIXEL_ID')
+  const token = props.getProperty('META_CAPI_TOKEN')
+  if (!pixelId || !token || !d.eventId) return
+  const userData = { ph: [sha256_(toWaNumber_(d.phone))] }
+  if (d.fbp) userData.fbp = d.fbp
+  if (d.fbc) userData.fbc = d.fbc
+  if (d.userAgent) userData.client_user_agent = d.userAgent
+  const payload = {
+    data: [{
+      event_name: 'Schedule',
+      event_time: Math.floor(Date.now() / 1000),
+      event_id: d.eventId,
+      action_source: 'website',
+      event_source_url: d.pageUrl || 'https://promo.barugamedicalcenter.com/',
+      user_data: userData,
+    }],
+  }
+  try {
+    UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + pixelId + '/events?access_token=' + encodeURIComponent(token), {
+      method: 'post', contentType: 'application/json', payload: JSON.stringify(payload), muteHttpExceptions: true,
+    })
+  } catch (err) {
+    console.warn('Meta Conversions API failed: ' + err)
+  }
+}
+
+function sha256_(text) {
+  return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, text, Utilities.Charset.UTF_8)
+    .map((b) => ('0' + (b & 0xff).toString(16)).slice(-2)).join('')
 }
 
 function isValidSlot_(date, time) {

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { BOOKING_API_URL, CLINIC, DOCTORS, PROMO, TREATMENTS, asset } from './config'
 import { campaignRange, dayLabel, daysLeft, formatLongDate, slotKey, slotsFor, toKey, upcomingDays } from './schedule'
+import { initPixel, isBracesTraffic, metaBrowserIds, newEventId, readAttribution, sourceCode, trackSchedule } from './tracking'
 import './App.css'
 
 function DoctorPhoto({ doctor }) {
@@ -106,18 +107,77 @@ function useBookedSlots() {
   return { booked, loading, markTaken }
 }
 
-function BookingForm() {
+// The WhatsApp message the patient sends after booking (and the fallback if booking fails).
+function whatsappText({ chosen, name, phone, date, time, note, attr, locked }) {
+  const lines = [
+    'Halo Baruga Medical Center,',
+    locked ? 'Saya sudah booking *Konsultasi Gratis* lewat website.' : 'Saya ingin booking *Konsultasi Gratis*.',
+    '',
+    `Perawatan: ${chosen ? chosen.title : '-'}`,
+  ]
+  if (chosen) lines.push(`Promo: ${chosen.offers.join(' + ')}`)
+  lines.push(`Nama: ${name}`, `No. WA: ${phone}`)
+  if (date) lines.push(`Tanggal: ${formatLongDate(date)}`)
+  if (time) lines.push(`Jam: ${time} WITA`)
+  if (note) lines.push(`Keluhan/Catatan: ${note}`)
+  const code = sourceCode(attr)
+  if (code) lines.push(`Kode: ${code}`)
+  lines.push('', 'Terima kasih!')
+  return lines.join('\n')
+}
+const waLink = (text) => `https://wa.me/${CLINIC.whatsapp}?text=${encodeURIComponent(text)}`
+
+function Confirmation({ done }) {
+  const [copied, setCopied] = useState(false)
+  const cardRef = useRef(null)
+  // The card is shorter than the form it replaces, so bring it into view.
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      const card = cardRef.current
+      if (card) window.scrollTo({ top: card.getBoundingClientRect().top + window.scrollY - 90 })
+    })
+    return () => cancelAnimationFrame(id)
+  }, [])
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(done.text)
+      setCopied(true)
+    } catch {
+      setCopied(false)
+    }
+  }
+  return (
+    <div className="booking-card confirm" role="status" ref={cardRef}>
+      <span className="confirm-tick" aria-hidden="true">✓</span>
+      <h3 className="confirm-title">Jadwal Anda sudah terkunci</h3>
+      <p className="confirm-when">{formatLongDate(done.date)} · {done.time} WITA</p>
+      <p className="hint">Konsultasi {done.chosen.title} untuk <b>{done.name}</b> di {CLINIC.name}.</p>
+      <a className="btn btn-primary btn-block" href={waLink(done.text)}><WhatsAppIcon /> Kirim konfirmasi ke WhatsApp</a>
+      <button type="button" className="btn btn-secondary btn-block" onClick={copy}>
+        {copied ? 'Pesan tersalin' : 'Salin pesan'}
+      </button>
+      <p className="hint">
+        Kalau WhatsApp tidak terbuka, salin pesan lalu kirim ke {CLINIC.phoneDisplay}.<br />
+        <a href={CLINIC.mapsUrl} target="_blank" rel="noreferrer">{CLINIC.address}</a>
+      </p>
+    </div>
+  )
+}
+
+function BookingForm({ attr }) {
   const { booked, loading, markTaken: onTaken } = useBookedSlots()
   const days = useMemo(() => upcomingDays(booked), [booked])
   const [pickedKey, setDateKey] = useState('')
   const dateKey = days.some((d) => toKey(d) === pickedKey) ? pickedKey : (days[0] ? toKey(days[0]) : '')
   const [time, setTime] = useState('')
-  const [treatment, setTreatment] = useState('')
+  const [treatment, setTreatment] = useState(isBracesTraffic(attr) ? 'Ortodonti' : '')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [note, setNote] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [fallback, setFallback] = useState('')
+  const [done, setDone] = useState(null)
 
   const selectedDate = days.find((d) => toKey(d) === dateKey)
   const slots = selectedDate ? slotsFor(selectedDate, booked) : []
@@ -128,7 +188,7 @@ function BookingForm() {
   }
 
   // Reserve the slot (and create the calendar event) before handing off to WhatsApp.
-  async function reserve() {
+  async function reserve(eventId) {
     if (!BOOKING_API_URL) {
       console.warn('VITE_BOOKING_API_URL not set: skipping slot reservation')
       return { ok: true }
@@ -137,7 +197,11 @@ function BookingForm() {
       method: 'POST',
       // text/plain keeps this a "simple" request, which Apps Script needs (no CORS preflight).
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ treatment, name: name.trim(), phone: phone.trim(), note: note.trim(), date: dateKey, time }),
+      body: JSON.stringify({
+        treatment, name: name.trim(), phone: phone.trim(), note: note.trim(), date: dateKey, time,
+        source: attr, eventId, ...metaBrowserIds(attr),
+        pageUrl: window.location.href.split('#')[0], userAgent: navigator.userAgent,
+      }),
     })
     return res.json()
   }
@@ -149,16 +213,20 @@ function BookingForm() {
     if (!/^[0-9+\s-]{9,16}$/.test(phone.trim())) return setError('Mohon isi nomor WhatsApp yang valid.')
     if (!treatment) return setError('Mohon pilih jenis perawatan.')
     setError('')
+    setFallback('')
     setSubmitting(true)
 
+    const chosen = TREATMENTS.find((t) => t.id === treatment)
+    const details = { chosen, name: name.trim(), phone: phone.trim(), date: selectedDate, time, note: note.trim(), attr }
+    const eventId = newEventId()
     let result
     try {
-      result = await reserve()
+      result = await reserve(eventId)
     } catch {
       result = { ok: false, error: 'network' }
     }
+    setSubmitting(false)
     if (!result.ok) {
-      setSubmitting(false)
       if (result.error === 'taken') {
         onTaken(slotKey(selectedDate, time))
         setTime('')
@@ -168,26 +236,18 @@ function BookingForm() {
         setTime('')
         return setError('Jam tersebut sudah tidak tersedia. Silakan pilih jam lain.')
       }
-      return setError('Booking gagal terkirim. Periksa koneksi internet Anda lalu coba lagi.')
+      // Never a dead end: offer the same booking by WhatsApp.
+      setFallback(waLink(whatsappText({ ...details, locked: false })))
+      return setError(result.error === 'busy'
+        ? 'Sistem booking sedang sibuk. Coba lagi sebentar, atau kirim booking Anda lewat WhatsApp.'
+        : 'Booking belum terkirim. Coba lagi, atau kirim booking Anda lewat WhatsApp.')
     }
 
-    const chosen = TREATMENTS.find((t) => t.id === treatment)
-    const lines = [
-      'Halo Baruga Medical Center,',
-      'Saya ingin booking *Konsultasi Gratis*.',
-      '',
-      `Perawatan: ${chosen.title}`,
-      `Promo: ${chosen.offers.join(' + ')}`,
-      `Nama: ${name.trim()}`,
-      `No. WA: ${phone.trim()}`,
-      `Tanggal: ${formatLongDate(selectedDate)}`,
-      `Jam: ${time} WITA`,
-    ]
-    if (note.trim()) lines.push(`Keluhan/Catatan: ${note.trim()}`)
-    lines.push('', 'Terima kasih!')
-
-    window.location.href = `https://wa.me/${CLINIC.whatsapp}?text=${encodeURIComponent(lines.join('\n'))}`
+    trackSchedule(eventId)
+    setDone({ ...details, text: whatsappText({ ...details, locked: true }) })
   }
+
+  if (done) return <Confirmation done={done} />
 
   if (!loading && days.length === 0) {
     return (
@@ -233,11 +293,13 @@ function BookingForm() {
         </div>
       )}
 
-      <label className="field-label" htmlFor="name"><span>03</span> Data diri</label>
-      <input id="name" className="input" placeholder="Nama lengkap" autoComplete="name"
+      <p className="field-label"><span>03</span> Data diri</p>
+      <label className="input-label" htmlFor="name">Nama lengkap</label>
+      <input id="name" className="input" placeholder="cth. Andi Rahman" autoComplete="name"
         value={name} onChange={(e) => setName(e.target.value)} />
-      <input className="input" placeholder="No. WhatsApp (cth. 0812xxxx)" inputMode="tel" autoComplete="tel"
-        aria-label="Nomor WhatsApp" value={phone} onChange={(e) => setPhone(e.target.value)} />
+      <label className="input-label" htmlFor="phone">Nomor WhatsApp</label>
+      <input id="phone" className="input" placeholder="cth. 0812xxxxxxx" inputMode="tel" autoComplete="tel"
+        value={phone} onChange={(e) => setPhone(e.target.value)} />
 
       <p className="field-label"><span>04</span> Perawatan &amp; keluhan</p>
       <div className="treatment-grid" role="radiogroup" aria-label="Perawatan">
@@ -252,15 +314,17 @@ function BookingForm() {
           </button>
         ))}
       </div>
-      <textarea className="input" rows={2} placeholder="Keluhan / catatan (opsional)"
-        aria-label="Keluhan atau catatan" value={note} onChange={(e) => setNote(e.target.value)} />
+      <label className="input-label" htmlFor="note">Keluhan / catatan <em>(opsional)</em></label>
+      <textarea id="note" className="input" rows={2} placeholder="cth. gigi depan berjejal"
+        value={note} onChange={(e) => setNote(e.target.value)} />
 
       {error && <p className="error" role="alert">{error}</p>}
+      {fallback && <a className="btn btn-secondary btn-block" href={fallback}><WhatsAppIcon /> Kirim booking lewat WhatsApp</a>}
 
       <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
         <WhatsAppIcon /> {submitting ? 'Memproses booking…' : 'Booking via WhatsApp'}
       </button>
-      <p className="hint">Jadwal Anda langsung kami kunci, lalu Anda diarahkan ke WhatsApp untuk mengirim detail booking.</p>
+      <p className="hint">Jadwal Anda langsung kami kunci. Setelah itu Anda bisa mengirim konfirmasi ke WhatsApp klinik.</p>
     </form>
   )
 }
@@ -287,6 +351,9 @@ function SectionHead({ label, children, sub, center }) {
 }
 
 export default function App() {
+  const attr = useMemo(() => readAttribution(), [])
+  const braces = isBracesTraffic(attr)
+  useEffect(initPixel, [])
   const bookingRef = useRef(null)
   const scrolled = useScrolled()
   const left = daysLeft()
@@ -309,14 +376,27 @@ export default function App() {
           <div className="hero-overlay" aria-hidden="true" />
           <div className="container hero-grid">
             <div className="hero-content">
-              <span className="hero-label">Promo Ortodonti · Makassar</span>
-              <h1 className="hero-title">Senyum rapi,<br /><em>hemat {PROMO.discount}.</em></h1>
-              <p className="hero-subtitle">
-                Diskon {PROMO.discount} perawatan behel bersama dokter gigi spesialis ortodonti, plus konsultasi
-                awal gratis untuk ortodonti &amp; prostodonti.
-              </p>
+              {braces ? (
+                <>
+                  <span className="hero-label">Pemeriksaan Awal Behel · Makassar</span>
+                  <h1 className="hero-title">Pemeriksaan awal behel,<br /><em>tanpa biaya konsultasi.</em></h1>
+                  <p className="hero-subtitle">
+                    Gigi dan rahang diperiksa dokter gigi spesialis ortodonti, lalu dijelaskan rencana perawatan yang
+                    cocok. Diskon {PROMO.discount} perawatan behel juga berlaku sampai {PROMO.deadline}.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <span className="hero-label">Promo Ortodonti · Makassar</span>
+                  <h1 className="hero-title">Senyum rapi,<br /><em>hemat {PROMO.discount}.</em></h1>
+                  <p className="hero-subtitle">
+                    Diskon {PROMO.discount} perawatan behel bersama dokter gigi spesialis ortodonti, plus konsultasi
+                    awal gratis untuk ortodonti &amp; prostodonti.
+                  </p>
+                </>
+              )}
               <div className="hero-buttons">
-                <button className="btn btn-primary" onClick={scrollToBooking}>Booking Konsultasi Gratis</button>
+                <button className="btn btn-primary" onClick={scrollToBooking}>{braces ? 'Pilih Jadwal Pemeriksaan' : 'Booking Konsultasi Gratis'}</button>
                 <a className="btn btn-secondary" href="#hasil">Lihat Hasil Perawatan</a>
               </div>
               {left > 0 && (
@@ -421,7 +501,7 @@ export default function App() {
                 </div>
               </div>
             </div>
-            <BookingForm />
+            <BookingForm attr={attr} />
           </div>
         </section>
       </main>
